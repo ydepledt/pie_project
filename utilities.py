@@ -2,7 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from typing import Tuple
+from typing import List, Tuple, Union
 
 COLORS = {'PRETTY_BLUE': '#3D6FFF',
           'PRETTY_RED': '#FF3D3D',
@@ -11,6 +11,7 @@ COLORS = {'PRETTY_BLUE': '#3D6FFF',
 }
 
 def plot_missing_data(dataframe: pd.DataFrame, 
+                      nan_values: List[Union[int, float, str]] = None,
                       figsize: Tuple[int, int] = (10, 6),
                       color: str = COLORS['PRETTY_BLUE'],
                       filepath: str = None) -> pd.DataFrame:
@@ -21,6 +22,9 @@ def plot_missing_data(dataframe: pd.DataFrame,
     -----------
     dataframe : pandas DataFrame
         The input DataFrame for which missing data analysis will be performed.
+
+    nan_values : List[int, float, str], optional
+        The list of values to be considered as NaN. Defaults to None.
 
     figsize : Tuple[int, int], optional
         The size of the figure for the visualization. Defaults to (10, 6).
@@ -44,8 +48,13 @@ def plot_missing_data(dataframe: pd.DataFrame,
     columns with missing data. The function returns a DataFrame summarizing the 
     missing data statistics for all columns in the input DataFrame.
     """
+    if nan_values is not None:
+        total_missing = dataframe.isnull().sum()
+        for nan_value in nan_values:
+            total_missing += (dataframe == nan_value).sum()
+    else:
+        total_missing = dataframe.isnull().sum()
 
-    total_missing = dataframe.isnull().sum()
     percentage_missing = total_missing / dataframe.shape[0]
     
     missing_info_df = pd.DataFrame({'Total Missing': total_missing, 
@@ -55,11 +64,11 @@ def plot_missing_data(dataframe: pd.DataFrame,
     
     filtered_missing_info_df = missing_info_df[missing_info_df['Percentage Missing'] > 0]
 
-    plt.figure(figsize= figsize)
+    plt.figure(figsize=figsize)
     sns.barplot(y='Percentage Missing', 
                 x=filtered_missing_info_df.index, 
                 data=filtered_missing_info_df, 
-                color= color)
+                color=color)
 
     plt.title('Percentage of Missing Values by Feature')
     plt.ylabel('Percentage Missing')
@@ -68,11 +77,12 @@ def plot_missing_data(dataframe: pd.DataFrame,
     if filepath:
         if not filepath.endswith('.png'):
             filepath += '.png'
-        plt.savefig(filepath, bbox_inches= "tight")
+        plt.savefig(filepath, bbox_inches="tight")
 
     plt.show()
 
     return missing_info_df
+
 
 def plot_groupby(dataframe: pd.DataFrame, 
                  group: str,

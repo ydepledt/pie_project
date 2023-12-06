@@ -1,7 +1,9 @@
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+from sklearn.preprocessing import MinMaxScaler
 from typing import List, Tuple, Union
 
 COLORS = {'PRETTY_BLUE': '#3D6FFF',
@@ -130,9 +132,9 @@ def plot_groupby(dataframe: pd.DataFrame,
     total_by_group = groups.size()
     
     df = pd.DataFrame({
-        'Survival Percentage': percentage_by_group,
-        'Total Passengers': total_by_group,
-        'Survived Passengers': number_by_group
+        'Group Percentage': percentage_by_group,
+        'Total': total_by_group,
+        'Grouped total': number_by_group
     })
 
     plt.figure(figsize= figsize)
@@ -149,3 +151,223 @@ def plot_groupby(dataframe: pd.DataFrame,
     plt.show()
 
     return df
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from typing import Tuple
+
+def plot_hist_discrete_feature(df: pd.DataFrame, 
+                               column: str,
+                               frequency: bool = False,
+                               align: str = 'center',
+                               figsize: Tuple[int, int] = (10, 6),
+                               filepath: str = None,
+                               **kwargs) -> None:
+    """
+    Plot a histogram for a specified column in a DataFrame with customizable options.
+
+    Parameters:
+    -----------
+    df (pd.DataFrame):
+        The DataFrame containing the data.
+
+    column (str):
+        The name of the column to plot.
+
+    frequency (bool, optional):
+        If True, plot frequencies instead of counts. Defaults to False.
+
+    figsize (Tuple[int, int], optional):
+        The size of the figure (width, height) in inches. Defaults to (10, 6).
+
+    filepath (str, optional):
+        The file path to save the plot as an image. If provided, the figure will be saved as a PNG file.
+        Defaults to None.
+
+    **kwargs:
+        Additional keyword arguments for customization (e.g., alpha, edgecolor, bins, color, etc.).
+
+    Returns:
+    --------
+    None
+
+    This function plots a histogram for the specified column in the DataFrame. It provides options
+    to customize the appearance of the plot, such as figure size, colors, and transparency. If a file
+    path is provided, the plot will be saved as an image in PNG format.
+    """
+    plt.figure(figsize=figsize)
+
+    labels, counts = np.unique(df[column], return_counts=True)
+    
+    if frequency:
+        total_observations = len(df[column])
+        counts = counts / total_observations
+
+    plt.bar(labels, counts, align='center', **kwargs)
+    plt.gca().set_xticks(labels)
+
+    if frequency:
+        plt.title(f'Frequency Histogram of {column}')
+        plt.ylabel('Frequency')
+    else:
+        plt.title(f'Histogram of {column}')
+        plt.ylabel('Count')
+
+    plt.xlabel('Values')
+
+    if filepath:
+        if not filepath.endswith('.png'):
+            filepath += '.png'
+        plt.savefig(filepath, bbox_inches="tight")
+
+    plt.show()
+
+
+def min_max_scale_column(df: pd.DataFrame,
+                          column: str,
+                          new_min: int,
+                          new_max: int,
+                          add_noise: bool = False,
+                          noise_factor: float = 0.0,
+                          convert_to_int: bool = False,
+                          inplace: bool = True) -> pd.DataFrame:
+
+    """
+    Scale a specified column in a DataFrame using Min-Max scaling and provide optional features.
+
+    Parameters:
+    -----------
+    df (pd.DataFrame):
+        The DataFrame containing the data.
+
+    column (str):
+        The name of the column to scale.
+
+    new_min (int):
+        The desired minimum value after scaling.
+
+    new_max (int):
+        The desired maximum value after scaling.
+
+    add_noise (bool, optional):
+        If True, add random noise to the scaled values. Defaults to False.
+
+    noise_factor (float, optional):
+        The standard deviation of the random noise to be added. Defaults to 0.0.
+
+    convert_to_int (bool, optional):
+        If True, round the scaled values and convert them to integers. Defaults to False.
+
+    inplace (bool, optional):
+        If True, modify the DataFrame in place. If False, create a copy of the DataFrame.
+        Defaults to True.
+
+    Returns:
+    --------
+    pd.DataFrame or None:
+        Returns the modified DataFrame if inplace is True, otherwise, returns a new DataFrame.
+
+    This function scales the specified column using Min-Max scaling and provides optional features
+    such as adding random noise and rounding to integers. The scaled values are rounded to the nearest
+    half to ensure granularity. If specified, random noise is added, and the values can be converted
+    to integers. The modified DataFrame is returned if inplace is True; otherwise, a new DataFrame
+    is returned.
+    """
+    
+    if not inplace:
+        df = df.copy()
+
+    # Extract the column values as a 2D array for MinMaxScaler
+    values = df[[column]].values
+
+    # Initialize MinMaxScaler
+    scaler = MinMaxScaler(feature_range=(new_min, new_max))
+
+    scaled_values = scaler.fit_transform(values)
+    rounded_values = np.round(scaled_values * 2) / 2
+
+    # Flatten the scaled values array and assign it back to the DataFrame
+    df[column] = rounded_values.flatten()
+
+    # Add noise if specified
+    if add_noise:
+        noise = np.random.normal(scale=noise_factor, size=len(df))
+        df[column] += noise
+
+
+    # Convert to int if specified
+    if convert_to_int:
+        df[column] = df[column].round().astype(int)
+
+    # Return the modified DataFrame if inplace is False
+    if not inplace:
+        return df
+
+import pandas as pd
+
+def categorize_column(df: pd.DataFrame,
+                       column: str,
+                       int_bins: list,
+                       categorial_labels: list,
+                       handle_nan: bool = False,
+                       drop_original: bool = True,
+                       inplace: bool = True) -> pd.DataFrame:
+    """
+    Categorize a numerical column in a DataFrame into specified bins and labels.
+
+    Parameters:
+    -----------
+    df (pd.DataFrame):
+        The DataFrame containing the data.
+
+    column (str):
+        The name of the column to categorize.
+
+    int_bins (list):
+        The bin edges for categorizing the numerical values in the column.
+
+    categorial_labels (list):
+        The labels corresponding to the bins for categorizing the values.
+
+    handle_nan (bool, optional):
+        If True, add a category 'Unknown' for NaN values. Defaults to False.
+
+    drop_original (bool, optional):
+        If True, drop the original numerical column after categorization. Defaults to True.
+
+    inplace (bool, optional):
+        If True, modify the DataFrame in place. If False, create a copy of the DataFrame.
+        Defaults to True.
+
+    Returns:
+    --------
+    pd.DataFrame or None:
+        Returns the modified DataFrame if inplace is True, otherwise, returns a new DataFrame.
+
+    This function categorizes the specified numerical column into bins with corresponding labels.
+    Optionally, it can handle NaN values by adding a category 'Unknown'. The modified DataFrame is
+    returned if inplace is True; otherwise, a new DataFrame is returned.
+    """
+    
+    assert len(int_bins) == len(categorial_labels) + 1, "Length of int_bins and categorial_labels must match."
+
+    if not inplace:
+        df = df.copy()
+
+    # Categorize the numerical column into specified bins and labels
+    df[column + '_Bin'] = pd.cut(df[column], bins=int_bins, labels=categorial_labels, right=False)
+
+    # Deal with NaN values if specified
+    if handle_nan:
+        df[column + '_Bin'] = df[column + '_Bin'].cat.add_categories('Unknown').fillna('Unknown')
+
+    # Drop the original numerical column if specified
+    if drop_original:
+        df.drop(column, axis=1, inplace=True)
+
+    # Return the modified DataFrame if inplace is False
+    if not inplace:
+        return df
+
+                      

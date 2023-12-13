@@ -4,6 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.decomposition import PCA
 from typing import List, Tuple, Union
 
 COLORS = {'PRETTY_BLUE': '#3D6FFF',
@@ -160,7 +161,6 @@ from typing import Tuple
 def plot_hist_discrete_feature(df: pd.DataFrame, 
                                column: str,
                                frequency: bool = False,
-                               align: str = 'center',
                                figsize: Tuple[int, int] = (10, 6),
                                filepath: str = None,
                                **kwargs) -> None:
@@ -204,7 +204,7 @@ def plot_hist_discrete_feature(df: pd.DataFrame,
         total_observations = len(df[column])
         counts = counts / total_observations
 
-    plt.bar(labels, counts, align='center', **kwargs)
+    plt.bar(labels, counts, **kwargs)
     plt.gca().set_xticks(labels)
 
     if frequency:
@@ -225,13 +225,13 @@ def plot_hist_discrete_feature(df: pd.DataFrame,
 
 
 def min_max_scale_column(df: pd.DataFrame,
-                          column: str,
-                          new_min: int,
-                          new_max: int,
-                          add_noise: bool = False,
-                          noise_factor: float = 0.0,
-                          convert_to_int: bool = False,
-                          inplace: bool = True) -> pd.DataFrame:
+                         column: str,
+                         new_min: int,
+                         new_max: int,
+                         add_noise: bool = False,
+                         noise_factor: float = 0.0,
+                         convert_to_int: bool = False,
+                         inplace: bool = True) -> pd.DataFrame:
 
     """
     Scale a specified column in a DataFrame using Min-Max scaling and provide optional features.
@@ -307,12 +307,12 @@ def min_max_scale_column(df: pd.DataFrame,
 import pandas as pd
 
 def categorize_column(df: pd.DataFrame,
-                       column: str,
-                       int_bins: list,
-                       categorial_labels: list,
-                       handle_nan: bool = False,
-                       drop_original: bool = True,
-                       inplace: bool = True) -> pd.DataFrame:
+                      column: str,
+                      int_bins: list,
+                      categorial_labels: list,
+                      handle_nan: bool = False,
+                      replace_original: bool = True,
+                      inplace: bool = True) -> pd.DataFrame:
     """
     Categorize a numerical column in a DataFrame into specified bins and labels.
 
@@ -333,8 +333,8 @@ def categorize_column(df: pd.DataFrame,
     handle_nan (bool, optional):
         If True, add a category 'Unknown' for NaN values. Defaults to False.
 
-    drop_original (bool, optional):
-        If True, drop the original numerical column after categorization. Defaults to True.
+    replace_original (bool, optional):
+        If True, replace the original numerical column after categorization. Defaults to True.
 
     inplace (bool, optional):
         If True, modify the DataFrame in place. If False, create a copy of the DataFrame.
@@ -355,19 +355,83 @@ def categorize_column(df: pd.DataFrame,
     if not inplace:
         df = df.copy()
 
+    str_to_add = '' if replace_original else '_bin'
+
+
     # Categorize the numerical column into specified bins and labels
-    df[column + '_Bin'] = pd.cut(df[column], bins=int_bins, labels=categorial_labels, right=False)
+    df[column + str_to_add] = pd.cut(df[column], bins=int_bins, labels=categorial_labels, right=False)
 
     # Deal with NaN values if specified
     if handle_nan:
-        df[column + '_Bin'] = df[column + '_Bin'].cat.add_categories('Unknown').fillna('Unknown')
-
-    # Drop the original numerical column if specified
-    if drop_original:
-        df.drop(column, axis=1, inplace=True)
+        df[column + str_to_add] = df[column + str_to_add].cat.add_categories('Unknown').fillna('Unknown')
 
     # Return the modified DataFrame if inplace is False
     if not inplace:
         return df
+    
+def plot_PCA(df: pd.DataFrame, 
+             size: Tuple[int, int] = (10, 8), 
+             filepath: str = None,
+             **kwargs) -> np.ndarray:
+    
+    pca = PCA()
+    pca.fit(df)
+
+    explained_variance_ratio = pca.explained_variance_ratio_
+    
+    principal_components = range(1, len(explained_variance_ratio) + 1)
+    
+    plt.figure(figsize=size)
+
+    plt.bar(principal_components, 
+            explained_variance_ratio, 
+            **kwargs)
+    
+    plt.xlabel('Principal Components', fontweight='bold')
+    plt.ylabel('Explained Variance Ratio', fontweight='bold')
+    plt.title('Explained Variance Ratio by Principal Component', fontweight='bold')
+    
+    plt.xticks(principal_components)
+
+    if filepath:
+        if not filepath.endswith('.png'):
+            filepath += '.png'
+        plt.savefig(filepath, bbox_inches="tight")
+
+    plt.show()
+
+    return explained_variance_ratio
+
+
+def plot_cumulative_explained_variance(explained_variance_ratio: np.ndarray,
+                                       size: Tuple[int, int] = (10, 8),
+                                       filepath: str = None,
+                                       **kwargs) -> None:
+
+    # Calculate the cumulative explained variance
+    cumulative_explained_variance = np.cumsum(explained_variance_ratio)
+
+    principal_components = range(1, len(explained_variance_ratio) + 1)
+
+    # Plot the cumulative explained variance
+    plt.figure(figsize=size)
+    plt.plot(principal_components, 
+             cumulative_explained_variance, 
+             **kwargs)
+
+    plt.xlabel('Number of Principal Components', fontweight='bold')
+    plt.ylabel('Cumulative Explained Variance', fontweight='bold')
+    plt.title('Cumulative Explained Variance by Principal Components', fontweight='bold')
+
+    plt.xticks(principal_components)
+
+    plt.grid(True)
+
+    if filepath:
+        if not filepath.endswith('.png'):
+            filepath += '.png'
+        plt.savefig(filepath, bbox_inches="tight")
+
+    plt.show()
 
                       

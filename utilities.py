@@ -51,6 +51,7 @@ def plot_missing_data(dataframe: pd.DataFrame,
     columns with missing data. The function returns a DataFrame summarizing the 
     missing data statistics for all columns in the input DataFrame.
     """
+
     if nan_values is not None:
         total_missing = dataframe.isnull().sum()
         for nan_value in nan_values:
@@ -152,11 +153,6 @@ def plot_groupby(dataframe: pd.DataFrame,
     plt.show()
 
     return df
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from typing import Tuple
 
 def plot_hist_discrete_feature(df: pd.DataFrame, 
                                column: str,
@@ -304,8 +300,6 @@ def min_max_scale_column(df: pd.DataFrame,
     if not inplace:
         return df
 
-import pandas as pd
-
 def categorize_column(df: pd.DataFrame,
                       column: str,
                       int_bins: list,
@@ -374,6 +368,33 @@ def plot_PCA(df: pd.DataFrame,
              filepath: str = None,
              **kwargs) -> np.ndarray:
     
+    """
+    Plot the Explained Variance Ratio by Principal Components using PCA on the DataFrame.
+
+    Parameters:
+    -----------
+    df (pd.DataFrame):
+        The DataFrame containing the data.
+
+    size (Tuple[int, int], optional):
+        The size of the plot (width, height). Defaults to (10, 8).
+
+    filepath (str, optional):
+        If provided, saves the plot as a PNG file at the specified filepath. Defaults to None.
+
+    **kwargs:
+        Additional keyword arguments to pass to the plt.bar function.
+
+    Returns:
+    --------
+    np.ndarray:
+        Returns the explained variance ratio of Principal Components obtained from PCA.
+
+    This function performs Principal Component Analysis (PCA) on the DataFrame and plots
+    the Explained Variance Ratio by Principal Components. It also returns the explained 
+    variance ratio for each principal component obtained from PCA.
+    """
+    
     pca = PCA()
     pca.fit(df)
 
@@ -407,6 +428,30 @@ def plot_cumulative_explained_variance(explained_variance_ratio: np.ndarray,
                                        size: Tuple[int, int] = (10, 8),
                                        filepath: str = None,
                                        **kwargs) -> None:
+    """
+    Plot the Cumulative Explained Variance by Principal Components.
+
+    Parameters:
+    -----------
+    explained_variance_ratio (np.ndarray):
+        The array containing the explained variance ratio for each principal component.
+
+    size (Tuple[int, int], optional):
+        The size of the plot (width, height). Defaults to (10, 8).
+
+    filepath (str, optional):
+        If provided, saves the plot as a PNG file at the specified filepath. Defaults to None.
+
+    **kwargs:
+        Additional keyword arguments to pass to the plt.plot function.
+
+    Returns:
+    --------
+    None
+
+    This function plots the Cumulative Explained Variance by Principal Components using the
+    explained variance ratio array obtained from PCA.
+    """
 
     # Calculate the cumulative explained variance
     cumulative_explained_variance = np.cumsum(explained_variance_ratio)
@@ -433,5 +478,3 @@ def plot_cumulative_explained_variance(explained_variance_ratio: np.ndarray,
         plt.savefig(filepath, bbox_inches="tight")
 
     plt.show()
-
-                      
